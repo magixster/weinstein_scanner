@@ -6,14 +6,8 @@ import asyncio
 from telegram import Bot
 from tickers import FOREX, CRYPTO, INDIA, US_STOCKS
 
-# -----------------------------
-# CONFIG
-# -----------------------------
 TOKEN = os.getenv('TELEGRAM_TOKEN')
 CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
-
-ACCOUNT_SIZE = 10000        # change this
-RISK_PER_TRADE = 0.01       # 1% risk
 
 BENCHMARKS = {
     "FOREX": "DX-Y.NYB",
@@ -23,25 +17,29 @@ BENCHMARKS = {
 }
 
 # -----------------------------
-# HELPERS
+# Helper Functions
 # -----------------------------
 
-def trend_up(df):
-    return df['Close'].iloc[-1] > df['Close'].iloc[-5] > df['Close'].iloc[-10]
+def trend_structure_up(df):
+    return (
+        df['Close'].iloc[-1] > df['Close'].iloc[-5] > df['Close'].iloc[-10]
+    )
+
+def trend_structure_down(df):
+    return (
+        df['Close'].iloc[-1] < df['Close'].iloc[-5] < df['Close'].iloc[-10]
+    )
 
 def breakout(df, lookback=20):
-    return df['Close'].iloc[-1] > df['High'].rolling(lookback).max().iloc[-2]
+    recent_high = df['High'].rolling(lookback).max().iloc[-2]
+    return df['Close'].iloc[-1] > recent_high
 
-def get_position_size(entry, sl):
-    risk_amount = ACCOUNT_SIZE * RISK_PER_TRADE
-    risk_per_unit = abs(entry - sl)
-    if risk_per_unit == 0:
-        return 0
-    qty = risk_amount / risk_per_unit
-    return int(qty)
+def breakdown(df, lookback=20):
+    recent_low = df['Low'].rolling(lookback).min().iloc[-2]
+    return df['Close'].iloc[-1] < recent_low
 
 # -----------------------------
-# ANALYSIS
+# Main Analyzer
 # -----------------------------
 
 async def analyze_category(name, tickers, benchmark_ticker):
@@ -62,10 +60,13 @@ async def analyze_category(name, tickers, benchmark_ticker):
             if len(df) < 60:
                 continue
 
+            # -----------------------------
+            # Indicators
+            # -----------------------------
             df['SMA30'] = df['Close'].rolling(30).mean()
             curr = df.iloc[-1]
 
-            # Slope
+            # Slope (stronger)
             sma_slope = df['SMA30'].iloc[-1] - df['SMA30'].iloc[-5]
 
             # Mansfield RS
@@ -73,7 +74,7 @@ async def analyze_category(name, tickers, benchmark_ticker):
             df['Avg_RS'] = df['Base_RS'].rolling(52).mean()
             mrs = ((df['Base_RS'].iloc[-1] / df['Avg_RS'].iloc[-1]) - 1) * 100
 
-            # Volume
+            # Volume (skip for forex)
             if name == "FOREX":
                 vol_ratio = 1
             else:
@@ -82,55 +83,16 @@ async def analyze_category(name, tickers, benchmark_ticker):
             clean_name = ticker.replace('.NS', '').replace('=X', '')
 
             # -----------------------------
-            # STAGE 2 CONDITIONS
+            # STAGE 2 (ADVANCING)
             # -----------------------------
             if (
                 curr['Close'] > curr['SMA30'] and
                 sma_slope > 0 and
-                trend_up(df) and
+                trend_structure_up(df) and
                 breakout(df) and
                 mrs > 0 and
                 vol_ratio >= 1.5
             ):
-
-                # -----------------------------
-                # DISTANCE FILTER
-                # -----------------------------
-                distance = ((curr['Close'] - curr['SMA30']) / curr['SMA30']) * 100
-
-                if distance > 15:
-                    continue  # skip bad trades
-
-                # -----------------------------
-                # ENTRY TYPE
-                # -----------------------------
-                if distance <= 5:
-                    entry_type = "EARLY BREAKOUT"
-                elif distance <= 10:
-                    entry_type = "NORMAL BREAKOUT"
-                else:
-                    entry_type = "EXTENDED"
-
-                # -----------------------------
-                # STOP LOSS (SWING LOW)
-                # -----------------------------
-                swing_low = df['Low'].rolling(10).min().iloc[-1]
-                entry_price = curr['Close']
-                sl_price = swing_low
-
-                # Risk %
-                risk_pct = ((entry_price - sl_price) / entry_price) * 100
-
-                # -----------------------------
-                # POSITION SIZE
-                # -----------------------------
-                qty = get_position_size(entry_price, sl_price)
-
-                # R-Multiple levels
-                one_r = entry_price - sl_price
-                target_1R = entry_price + one_r
-                target_2R = entry_price + (2 * one_r)
-
                 signals.append({
                     "type": "BUY",
                     "name": clean_name,
@@ -138,14 +100,31 @@ async def analyze_category(name, tickers, benchmark_ticker):
                     "text": (
                         f"🚀 *STAGE 2 (Advancing)*\n"
                         f"Asset: {clean_name}\n"
-                        f"Entry: {entry_price:.2f}\n"
-                        f"SL: {sl_price:.2f}\n"
-                        f"Position Size: {qty} units\n"
-                        f"Risk: {risk_pct:.1f}%\n"
-                        f"1R: {target_1R:.2f} | 2R: {target_2R:.2f}\n"
-                        f"Type: {entry_type}\n"
-                        f"Dist from 30W: {distance:.1f}%\n"
-                        f"RS: {mrs:.1f}% | Vol: {vol_ratio:.1f}x"
+                        f"Verdict: **BUY**\n"
+                        f"Details: Breakout | Vol {vol_ratio:.1f}x | RS {mrs:.1f}%"
+                    )
+                })
+
+            # -----------------------------
+            # STAGE 4 (DECLINING)
+            # -----------------------------
+            elif (
+                curr['Close'] < curr['SMA30'] and
+                sma_slope < 0 and
+                trend_structure_down(df) and
+                breakdown(df)
+            ):
+                verdict = "SELL/EXIT ONLY" if name == "INDIA" else "SELL / SHORT"
+
+                signals.append({
+                    "type": "SELL",
+                    "name": clean_name,
+                    "mrs": mrs,
+                    "text": (
+                        f"🛑 *STAGE 4 (Declining)*\n"
+                        f"Asset: {clean_name}\n"
+                        f"Verdict: **{verdict}**\n"
+                        f"Details: Breakdown | Weak Trend"
                     )
                 })
 
@@ -170,39 +149,45 @@ async def main():
     ]
 
     all_buys = []
+    all_sells = []
     full_body = ""
 
     for name, tickers, bench in categories:
         sigs = await analyze_category(name, tickers, bench)
 
         if sigs:
-            all_buys.extend(sigs)
+            cat_buys = [s for s in sigs if s['type'] == "BUY"]
+            cat_sells = [s for s in sigs if s['type'] == "SELL"]
+
+            all_buys.extend(cat_buys)
+            all_sells.extend(cat_sells)
+
             full_body += (
-                f"\n🏢 *{name} MARKET*\n"
+                f"\n🏢 *{name} MARKET* 🤵‍♂️\n"
                 + "\n\n".join([s['text'] for s in sigs])
                 + "\n"
             )
 
     # -----------------------------
-    # LEADERBOARD
+    # LEADERBOARD (STRONGEST RS)
     # -----------------------------
     all_buys.sort(key=lambda x: x['mrs'], reverse=True)
     top_hits = all_buys[:5]
 
-    leaderboard = "🏆 *TOP LEADERS (RS)*\n"
+    leaderboard = "🏆 *TOP A+ LEADERS (RS Strength)*\n"
     if top_hits:
         for i, hit in enumerate(top_hits, 1):
-            leaderboard += f"{i}. {hit['name']} ({hit['mrs']:.1f}%)\n"
+            leaderboard += f"{i}. {hit['name']} (RS: {hit['mrs']:.1f}%)\n"
     else:
-        leaderboard += "No strong setups.\n"
+        leaderboard += "No strong leaders this week.\n"
 
     # -----------------------------
     # HEADER
     # -----------------------------
     header = (
-        "🤵‍♂️ *WEINSTEIN PRO TRADING SCAN* 🤵‍♂️\n"
+        "🤵‍♂️ *STAN WEINSTEIN PRO SCAN* 🤵‍♂️\n"
         "━━━━━━━━━━━━━━━━━━━━\n"
-        f"🚀 Total Trades: {len(all_buys)}\n"
+        f"🚀 Total Buy: {len(all_buys)} | 🛑 Total Sell: {len(all_sells)}\n"
         "━━━━━━━━━━━━━━━━━━━━\n\n"
     )
 
