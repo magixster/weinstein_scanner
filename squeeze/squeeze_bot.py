@@ -4,11 +4,20 @@ from telegram import Bot
 import os
 import sys
 
-# Import from root tickers.py (handled by PYTHONPATH in workflow)
+# --- BOILERPLATE PATH FIX ---
+# This finds the absolute path of the folder the script is in, 
+# then goes up one level to the Root to find tickers.py
+current_dir = os.path.dirname(os.path.abspath(__file__))
+root_dir = os.path.join(current_dir, "..")
+sys.path.insert(0, root_dir)
+# ----------------------------
+
 try:
     from tickers import FOREX_PAIRS
-except ImportError:
-    print("❌ Error: tickers.py not found. Check PYTHONPATH.")
+    print(f"✅ Successfully loaded {len(FOREX_PAIRS)} pairs from tickers.py")
+except ImportError as e:
+    print(f"❌ Error: Could not find tickers.py in {root_dir}")
+    print(f"Directory contents of root: {os.listdir(root_dir)}")
     sys.exit(1)
 
 from indicators import get_squeeze_status
