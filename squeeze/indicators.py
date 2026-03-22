@@ -1,38 +1,31 @@
 import pandas as pd
 import numpy as np
 
-def get_squeeze_status(df, length=20, mult_bb=2.0, mult_kc=1.5, use_true_range=True):
+def get_squeeze_status(df, length=20, mult=2.0, length_kc=20, mult_kc=1.5, use_tr=True):
     if len(df) < length + 2:
-        return "INSUFFICIENT_DATA", 0
+        return "STAY_SILENT", 0
 
-    # Source is Close
     source = df['Close']
-    
-    # --- 1. BOLLINGER BANDS ---
-    # basis = sma(source, length)
     basis = source.rolling(window=length).mean()
-    # dev = multKC * stdev(source, length) <--- LazyBear uses multKC here for the squeeze check
+    
+    # --- 1. BOLLINGER BANDS (CALIBRATED) ---
+    # LazyBear line 18: dev = multKC * stdev(source, length)
+    # This is why standard 2.0 bands didn't match the black dots!
     dev = mult_kc * source.rolling(window=length).std()
     upper_bb = basis + dev
     lower_bb = basis - dev
     
     # --- 2. KELTNER CHANNELS ---
-    # ma = sma(source, lengthKC)
-    ma = source.rolling(window=length).mean()
-    
-    if use_true_range:
-        # tr = max(high-low, abs(high-prev_close), abs(low-prev_close))
+    if use_tr:
         tr = np.maximum((df['High'] - df['Low']),
                         np.maximum(abs(df['High'] - df['Close'].shift()),
                                    abs(df['Low'] - df['Close'].shift())))
-        range_val = tr
+        range_ma = tr.rolling(window=length_kc).mean()
     else:
-        range_val = df['High'] - df['Low']
+        range_ma = (df['High'] - df['Low']).rolling(window=length_kc).mean()
         
-    # rangema = sma(range, lengthKC)
-    range_ma = range_val.rolling(window=length).mean()
-    upper_kc = ma + range_ma * mult_kc
-    lower_kc = ma - range_ma * mult_kc
+    upper_kc = basis + range_ma * mult_kc
+    lower_kc = basis - range_ma * mult_kc
     
     # --- 3. SQUEEZE LOGIC ---
     # sqzOn  = (lowerBB > lowerKC) and (upperBB < upperKC)
@@ -40,31 +33,27 @@ def get_squeeze_status(df, length=20, mult_bb=2.0, mult_kc=1.5, use_true_range=T
     sqz_on = (lower_bb > lower_kc) & (upper_bb < upper_kc)
     sqz_off = (lower_bb < lower_kc) & (upper_bb > upper_kc)
     
-    # --- 4. MOMENTUM (Linear Regression) ---
-    # val = linreg(source - avg(avg(highest(high, length), lowest(low, length)), sma(close,length)), length, 0)
-    highest_h = df['High'].rolling(window=length).max()
-    lowest_l = df['Low'].rolling(window=length).min()
-    avg_hl = (highest_h + lowest_l) / 2
-    avg_all = (avg_hl + basis) / 2
+    # --- 4. MOMENTUM (LINEAR REGRESSION) ---
+    highest_h = df['High'].rolling(window=length_kc).max()
+    lowest_l = df['Low'].rolling(window=length_kc).min()
+    avg_val = ( (highest_h + lowest_l)/2 + basis ) / 2
+    val = source - avg_val
     
-    val_to_reg = source - avg_all
-    
-    def calculate_linreg(series):
-        x = np.arange(len(series))
-        y = series.values
-        slope, intercept = np.polyfit(x, y, 1)
-        # Offset 0 means we calculate the value at the current bar
-        return slope * (len(series) - 1) + intercept
+    def linreg(s):
+        x = np.arange(len(s))
+        slope, intercept = np.polyfit(x, s.values, 1)
+        return slope * (len(s) - 1) + intercept
 
-    df['val'] = val_to_reg.rolling(window=length).apply(calculate_linreg, raw=False)
+    # LazyBear linreg length is lengthKC
+    df['mom_val'] = val.rolling(window=length_kc).apply(linreg, raw=False)
     
-    # --- 5. TRIGGER CHECK ---
-    curr_sqz_on = sqz_on.iloc[-1]
-    prev_sqz_on = sqz_on.iloc[-2]
+    # --- 5. THE ONE-SHOT TRIGGER ---
+    curr_on = sqz_on.iloc[-1]
+    prev_on = sqz_on.iloc[-2]
+    curr_off = sqz_off.iloc[-1]
     
-    # Signal: Only alert when it transitions from Black (On) to Gray (Off)
-    # We use boolean check: prev was True, current is False
-    if prev_sqz_on == True and curr_sqz_on == False:
-        return "RELEASED", df['val'].iloc[-1]
+    # TRIGGER: If it WAS on (Black) and is NOW off (Gray)
+    if prev_on == True and curr_off == True:
+        return "RELEASED", df['mom_val'].iloc[-1]
     
     return "STAY_SILENT", 0
