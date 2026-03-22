@@ -1,6 +1,22 @@
 # --- TICKERS DATABASE ---
 
-FOREX = ['EURUSD=X', 'GBPUSD=X', 'USDJPY=X', 'AUDUSD=X', 'USDCAD=X', 'USDCHF=X', 'NZDUSD=X', 'EURJPY=X', 'GBPJPY=X']
+# MAJOR PAIRS (Highest Liquidity)
+MAJORS = [
+    'EURUSD=X', 'GBPUSD=X', 'USDJPY=X', 'AUDUSD=X', 
+    'USDCAD=X', 'USDCHF=X', 'NZDUSD=X'
+]
+
+# MINOR PAIRS & CROSSES (High Volatility Squeezes)
+MINORS = [
+    'EURGBP=X', 'EURJPY=X', 'EURCHF=X', 'EURAUD=X', 'EURNZD=X', 'EURCAD=X',
+    'GBPJPY=X', 'GBPCHF=X', 'GBPAUD=X', 'GBPCAD=X', 'GBPNZD=X',
+    'AUDJPY=X', 'AUDCAD=X', 'AUDNZD=X', 'AUDCHF=X',
+    'NZDJPY=X', 'NZDCAD=X', 'NZDCHF=X',
+    'CADJPY=X', 'CADCHF=X', 'CHFJPY=X'
+]
+
+# Combined for the Bot
+FOREX = MAJORS + MINORS
 
 CRYPTO = ['BTC-USD', 'ETH-USD', 'SOL-USD', 'BNB-USD', 'XRP-USD', 'ADA-USD', 'DOGE-USD', 'AVAX-USD', 'LINK-USD', 'DOT-USD']
 
