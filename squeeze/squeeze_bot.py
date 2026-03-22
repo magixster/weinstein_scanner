@@ -23,21 +23,27 @@ except Exception as e:
 # Import local indicator file (must be in the same 'squeeze' folder)
 from indicators import get_squeeze_status
 
+# --- 2. CONFIG ---
 TOKEN = os.getenv('TELEGRAM_TOKEN')
 CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
 async def run_squeeze_monitor():
+    if not TOKEN or not CHAT_ID:
+        print("❌ Telegram credentials missing in Environment Variables.")
+        return
+
     bot = Bot(token=TOKEN)
-    print(f"🔎 Scanning {len(FOREX_PAIRS)} pairs for Squeeze Release...")
+    print(f"🔎 Scanning for Squeeze Release (Black ➡️ Gray)...")
     
+    # Download 1H data
     data = yf.download(FOREX_PAIRS, period='5d', interval='1h', group_by='ticker', progress=False)
     
     alerts = []
     for ticker in FOREX_PAIRS:
         try:
-            # Handle single vs multi-ticker download
             df = data[ticker].dropna() if len(FOREX_PAIRS) > 1 else data.dropna()
             
+            # Status from indicators.py
             status, momentum = get_squeeze_status(df)
             
             if status == "RELEASED":
@@ -47,7 +53,7 @@ async def run_squeeze_monitor():
                 alerts.append(
                     f"🚀 *SQUEEZE RELEASED: {pair_name}*\n"
                     f"━━━━━━━━━━━━━━━━━━\n"
-                    f"🔸 *Status:* Black ➡️ Gray Cross\n"
+                    f"🔸 *Transition:* Black ➡️ Gray Cross\n"
                     f"🔸 *Momentum:* {bias}\n"
                     f"🔸 *Price:* {df['Close'].iloc[-1]:.5f}"
                 )
@@ -57,8 +63,9 @@ async def run_squeeze_monitor():
     if alerts:
         final_msg = "📉 *SQZ_MOM HOURLY UPDATE* 📈\n\n" + "\n\n".join(alerts)
         await bot.send_message(chat_id=CHAT_ID, text=final_msg, parse_mode='Markdown')
+        print(f"✅ Sent {len(alerts)} alerts to Telegram.")
     else:
-        print("ℹ️ No new releases detected.")
+        print("ℹ️ No new squeeze releases detected this hour.")
 
 if __name__ == "__main__":
     asyncio.run(run_squeeze_monitor())
