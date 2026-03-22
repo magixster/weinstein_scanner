@@ -3,23 +3,24 @@ import yfinance as yf
 from telegram import Bot
 import os
 import sys
+import importlib.util
 
-# --- BOILERPLATE PATH FIX ---
-# This finds the absolute path of the folder the script is in, 
-# then goes up one level to the Root to find tickers.py
+# --- 1. FORCE-LOAD TICKERS.PY FROM ROOT ---
 current_dir = os.path.dirname(os.path.abspath(__file__))
-root_dir = os.path.join(current_dir, "..")
-sys.path.insert(0, root_dir)
-# ----------------------------
+root_dir = os.path.abspath(os.path.join(current_dir, ".."))
+tickers_path = os.path.join(root_dir, "tickers.py")
 
 try:
-    from tickers import FOREX_PAIRS
-    print(f"✅ Successfully loaded {len(FOREX_PAIRS)} pairs from tickers.py")
-except ImportError as e:
-    print(f"❌ Error: Could not find tickers.py in {root_dir}")
-    print(f"Directory contents of root: {os.listdir(root_dir)}")
+    spec = importlib.util.spec_from_file_location("tickers", tickers_path)
+    tickers_mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(tickers_mod)
+    FOREX_PAIRS = tickers_mod.FOREX_PAIRS
+    print(f"✅ Successfully loaded {len(FOREX_PAIRS)} pairs from root/tickers.py")
+except Exception as e:
+    print(f"❌ Error loading tickers.py at {tickers_path}: {e}")
     sys.exit(1)
 
+# Import local indicator file (must be in the same 'squeeze' folder)
 from indicators import get_squeeze_status
 
 TOKEN = os.getenv('TELEGRAM_TOKEN')
