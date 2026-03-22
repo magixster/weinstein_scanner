@@ -25,6 +25,7 @@ jobs:
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          # CRITICAL: This allows the script to find tickers.py in the root
+          # Path: The workspace is the ROOT where tickers.py lives
           PYTHONPATH: ${{ github.workspace }}
-        run: python Squeeze_momentum/squeeze_bot.py
+        # We run the command FROM the root, but point to the sub-folder script
+        run: python squeeze/squeeze_bot.py
