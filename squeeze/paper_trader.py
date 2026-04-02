@@ -89,6 +89,10 @@ class MultiMarketTrader:
         for ticker in tickers:
             if ticker in self.active_positions: continue
             status, mom = get_squeeze_status(data[ticker].dropna())
+
+            # ADD THIS LINE FOR TESTING:
+            print(f"DEBUG: {ticker} status is {status}")
+            
             if status == "RELEASED":
                 potential.append({'ticker': ticker, 'mom': abs(mom), 'side': "BUY" if mom > 0 else "SELL", 'df': data[ticker]})
 
