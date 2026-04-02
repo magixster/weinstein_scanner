@@ -1,5 +1,14 @@
 {
     "balance": 100000,
-    "active_positions": {},
+    "active_positions": {
+        "LINK-USD": {
+            "type": "SELL",
+            "entry_price": 8.616392135620117,
+            "units": 9767.538910298721,
+            "sl": 8.66758210318429,
+            "tp": 8.539607184273857,
+            "entry_time": "2026-04-02 21:52"
+        }
+    },
     "history": []
 }
