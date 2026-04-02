@@ -100,3 +100,15 @@ async def run_squeeze_monitor():
 
 if __name__ == "__main__":
     asyncio.run(run_squeeze_monitor())
+
+# --- DAILY REPORT TRIGGER ---
+# 16:00 UTC is approx 9:30 PM IST (End of Indian/US overlap)
+# You can change '16' to whatever hour suits your schedule
+if datetime.now().hour == 16: 
+    report = "📊 **END OF DAY PERFORMANCE SUMMARY**\n\n"
+    report += india_trader.get_report() + "\n\n"
+    report += us_trader.get_report() + "\n\n"
+    report += forex_trader.get_report()
+    
+    await bot.send_message(chat_id=CHAT_ID, text=report, parse_mode='Markdown')
+    print("✅ EOD Report sent to Telegram.")
