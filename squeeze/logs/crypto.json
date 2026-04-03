@@ -1,30 +1,24 @@
 {
-    "balance": 100000,
-    "active_positions": {
-        "LINK-USD": {
-            "type": "SELL",
-            "entry_price": 8.616392135620117,
-            "units": 9767.538910298721,
-            "sl": 8.66758210318429,
-            "tp": 8.539607184273857,
-            "entry_time": "2026-04-02 21:52"
+    "balance": 99750.0,
+    "active_positions": {},
+    "history": [
+        {
+            "ticker": "LINK-USD",
+            "pnl": -500.0,
+            "result": "SL",
+            "time": "2026-04-03 05:49"
         },
-        "DOT-USD": {
-            "type": "BUY",
-            "entry_price": 1.2362266778945923,
-            "units": 65927.07410588479,
-            "sl": 1.2286425403186254,
-            "tp": 1.2476028842585427,
-            "entry_time": "2026-04-02 23:50"
+        {
+            "ticker": "DOT-USD",
+            "pnl": 750.0,
+            "result": "TP",
+            "time": "2026-04-03 05:49"
         },
-        "ADA-USD": {
-            "type": "SELL",
-            "entry_price": 0.24092523753643036,
-            "units": 287689.7941486101,
-            "sl": 0.24266322063548224,
-            "tp": 0.23831826288785254,
-            "entry_time": "2026-04-03 03:28"
+        {
+            "ticker": "ADA-USD",
+            "pnl": -500.0,
+            "result": "SL",
+            "time": "2026-04-03 05:49"
         }
-    },
-    "history": []
+    ]
 }
