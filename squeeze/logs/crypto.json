@@ -1,6 +1,15 @@
 {
     "balance": 97764.97499999998,
-    "active_positions": {},
+    "active_positions": {
+        "SOL-USD": {
+            "type": "BUY",
+            "entry_price": 80.45594024658203,
+            "units": 1123.6459293391388,
+            "sl": 80.02090563092914,
+            "tp": 81.10849217006138,
+            "entry_time": "2026-04-03 21:23"
+        }
+    },
     "history": [
         {
             "ticker": "LINK-USD",
