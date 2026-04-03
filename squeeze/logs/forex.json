@@ -1,5 +1,5 @@
 {
-    "balance": 97257.66875000004,
+    "balance": 96771.38040625004,
     "active_positions": {
         "EURAUD=X": {
             "type": "SELL",
@@ -8,14 +8,6 @@
             "sl": 1.673023590019771,
             "tp": 1.666689681155341,
             "entry_time": "2026-04-02 18:01"
-        },
-        "USDCAD=X": {
-            "type": "BUY",
-            "entry_price": 1.3946000337600708,
-            "units": 447903.6278548451,
-            "sl": 1.393514335155487,
-            "tp": 1.3962285816669464,
-            "entry_time": "2026-04-04 03:20"
         }
     },
     "history": [
@@ -82,6 +74,16 @@
             "exit_price": 1.3936,
             "result": "SL",
             "pnl": -496.19
+        },
+        {
+            "ticker": "USDCAD=X",
+            "side": "BUY",
+            "entry_time": "2026-04-04 03:20",
+            "exit_time": "2026-04-04 05:19",
+            "entry_price": 1.3946,
+            "exit_price": 1.3935,
+            "result": "SL",
+            "pnl": -486.29
         }
     ]
 }
