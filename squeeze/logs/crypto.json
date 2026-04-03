@@ -1,6 +1,23 @@
 {
     "balance": 98752.5,
-    "active_positions": {},
+    "active_positions": {
+        "BNB-USD": {
+            "type": "BUY",
+            "entry_price": 587.0230712890625,
+            "units": 281.70646502835535,
+            "sl": 585.2703159877232,
+            "tp": 589.6522042410714,
+            "entry_time": "2026-04-03 17:39"
+        },
+        "SOL-USD": {
+            "type": "BUY",
+            "entry_price": 80.187744140625,
+            "units": 1369.8349312707503,
+            "sl": 79.82729012625558,
+            "tp": 80.72842516217914,
+            "entry_time": "2026-04-03 17:39"
+        }
+    },
     "history": [
         {
             "ticker": "LINK-USD",
