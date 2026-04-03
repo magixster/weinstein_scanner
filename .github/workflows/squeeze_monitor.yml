@@ -4,13 +4,13 @@ on:
   schedule:
     # Runs at 15 past every hour, Monday to Friday
     - cron: '15 * * * 1-5'
-  workflow_dispatch: # Allows you to trigger it manually for testing
+  workflow_dispatch: # Allows you to test it manually
 
 jobs:
   trade:
     runs-on: ubuntu-latest
     
-    # CRITICAL: This gives the Bot permission to save your Trade Logs
+    # --- CHANGE 1: Give the bot permission to save logs ---
     permissions:
       contents: write 
 
@@ -24,6 +24,7 @@ jobs:
           python-version: '3.10'
 
       - name: Install Dependencies
+        # --- CHANGE 2: Added 'pytz' for IST conversion ---
         run: |
           pip install pandas numpy yfinance python-telegram-bot pytz
 
@@ -31,17 +32,18 @@ jobs:
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          # Ensures the script can find your 'tickers.py' in the root
           PYTHONPATH: ${{ github.workspace }}
         run: python squeeze/squeeze_bot.py
 
-      - name: Save and Push Trade Logs
-        # This step takes the updated .json files and pushes them to your repo
+      # --- CHANGE 3: Save and Push all market logs ---
+      - name: Save Trade Logs
         run: |
           git config --global user.name "Squeeze-Bot-Trader"
           git config --global user.email "bot@github.com"
-          # Add all logs in the logs directory
+          
+          # Add all JSON files in the logs directory
           git add squeeze/logs/*.json
-          # Only commit if there are actually changes (new trades or exits)
-          git commit -m "Automated Trade Log Update [skip ci]" || echo "No changes to commit"
+          
+          # [skip ci] prevents the bot from triggering another run when it saves
+          git commit -m "Update Market Logs (IST/Pairwise) [skip ci]" || echo "No changes to commit"
           git push
