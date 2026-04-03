@@ -1,15 +1,6 @@
 {
-    "balance": 97764.97499999998,
-    "active_positions": {
-        "SOL-USD": {
-            "type": "BUY",
-            "entry_price": 80.45594024658203,
-            "units": 1123.6459293391388,
-            "sl": 80.02090563092914,
-            "tp": 81.10849217006138,
-            "entry_time": "2026-04-03 21:23"
-        }
-    },
+    "balance": 97276.15012499999,
+    "active_positions": {},
     "history": [
         {
             "ticker": "LINK-USD",
@@ -60,6 +51,16 @@
             "exit_price": 79.8273,
             "result": "SL",
             "pnl": -493.76
+        },
+        {
+            "ticker": "SOL-USD",
+            "side": "BUY",
+            "entry_time": "2026-04-03 21:23",
+            "exit_time": "2026-04-03 23:23",
+            "entry_price": 80.4559,
+            "exit_price": 80.0209,
+            "result": "SL",
+            "pnl": -488.82
         }
     ]
 }
