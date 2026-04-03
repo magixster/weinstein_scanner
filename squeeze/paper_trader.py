@@ -3,7 +3,7 @@ import numpy as np
 import yfinance as yf
 import os
 import json
-from datetime import datetime, time
+from datetime import datetime
 import pytz
 from indicators import get_squeeze_status
 
@@ -25,6 +25,11 @@ class MultiMarketTrader:
         self.balance = self.data.get("balance", INITIAL_BALANCE)
         self.active_positions = self.data.get("active_positions", {})
         self.history = self.data.get("history", [])
+        self.ist = pytz.timezone('Asia/Kolkata')
+
+    def get_ist_now(self):
+        """Returns current time in IST string format."""
+        return datetime.now(pytz.utc).astimezone(self.ist).strftime("%Y-%m-%d %H:%M")
 
     def load_logs(self):
         if os.path.exists(self.log_path):
@@ -34,84 +39,115 @@ class MultiMarketTrader:
 
     def save_logs(self):
         with open(self.log_path, 'w') as f:
-            json.dump({"balance": self.balance, "active_positions": self.active_positions, "history": self.history}, f, indent=4)
-
-    def is_market_open_for_entry(self):
-        """Prevents entries in the last 30 mins of trade to avoid overnight risk."""
-        now_utc = datetime.now(pytz.utc)
-        if self.market_name == "INDIA":
-            ist = now_utc.astimezone(pytz.timezone('Asia/Kolkata')).time()
-            return time(9, 15) <= ist <= time(15, 0) # Close at 15:30, so stop at 15:00
-        elif self.market_name == "US_STOCKS":
-            est = now_utc.astimezone(pytz.timezone('US/Eastern')).time()
-            return time(9, 30) <= est <= time(15, 30) # Close at 16:00
-        return True # Forex is 24/5
+            json.dump({
+                "balance": self.balance, 
+                "active_positions": self.active_positions, 
+                "history": self.history
+            }, f, indent=4)
 
     def calculate_atr(self, df, period=14):
-        tr = pd.concat([df['High']-df['Low'], abs(df['High']-df['Close'].shift()), abs(df['Low']-df['Close'].shift())], axis=1).max(axis=1)
+        tr = pd.concat([
+            df['High']-df['Low'], 
+            abs(df['High']-df['Close'].shift()), 
+            abs(df['Low']-df['Close'].shift())
+        ], axis=1).max(axis=1)
         return tr.rolling(period).mean().iloc[-1]
 
     async def run_market_session(self, tickers, bot, chat_id):
         if not tickers: return
-        data = yf.download(tickers, period='2d', interval='1h', group_by='ticker', progress=False, threads=True)
         
-        # 1. CHECK EXITS (Simulating OCO Orders: One-Cancels-the-Other)
+        # Sanitize tickers (Remove spaces and empty strings)
+        clean_tickers = [t.strip().replace(" ", "") for t in tickers if t]
+        
+        # Fetch data with enough history for ATR and Squeeze
+        data = yf.download(clean_tickers, period='5d', interval='1h', group_by='ticker', progress=False, threads=True)
+        
+        # 1. CHECK EXITS
         for ticker in list(self.active_positions.keys()):
-            df = data[ticker].dropna()
-            if df.empty: continue
-            
-            # We check High/Low of the last candle to see if SL/TP was triggered mid-hour
-            last_h, last_l = df['High'].iloc[-1], df['Low'].iloc[-1]
-            pos = self.active_positions[ticker]
-            price = df['Close'].iloc[-1] # Current price for logging
-            
-            exit_type = None
-            if pos['type'] == 'BUY':
-                if last_l <= pos['sl']: exit_type = "SL"
-                elif last_h >= pos['tp']: exit_type = "TP"
-            else: # SELL
-                if last_h >= pos['sl']: exit_type = "SL"
-                elif last_l <= pos['tp']: exit_type = "TP"
+            try:
+                df = data[ticker].dropna()
+                if df.empty: continue
+                
+                last_h, last_l = df['High'].iloc[-1], df['Low'].iloc[-1]
+                pos = self.active_positions[ticker]
+                exit_type = None
+                
+                if pos['type'] == 'BUY':
+                    if last_l <= pos['sl']: exit_type = "SL"
+                    elif last_h >= pos['tp']: exit_type = "TP"
+                else: # SELL Side
+                    if last_h >= pos['sl']: exit_type = "SL"
+                    elif last_l <= pos['tp']: exit_type = "TP"
 
-            if exit_type:
-                exit_price = pos['sl'] if exit_type == "SL" else pos['tp']
-                pnl = (exit_price - pos['entry_price']) * pos['units'] if pos['type'] == 'BUY' else (pos['entry_price'] - exit_price) * pos['units']
-                self.balance += pnl
-                self.history.append({"ticker": ticker, "pnl": round(pnl, 2), "result": exit_type, "time": datetime.now().strftime("%Y-%m-%d %H:%M")})
-                del self.active_positions[ticker]
-                await bot.send_message(chat_id=chat_id, text=f"🏁 {self.market_name} {exit_type}: {ticker}\nPnL: ${pnl:,.2f}")
+                if exit_type:
+                    exit_price = pos['sl'] if exit_type == "SL" else pos['tp']
+                    pnl = (exit_price - pos['entry_price']) * pos['units'] if pos['type'] == 'BUY' else (pos['entry_price'] - exit_price) * pos['units']
+                    
+                    self.balance += pnl
+                    self.history.append({
+                        "ticker": ticker,
+                        "side": pos['type'],
+                        "entry_time": pos['entry_time'],
+                        "exit_time": self.get_ist_now(),
+                        "entry_price": round(pos['entry_price'], 4),
+                        "exit_price": round(exit_price, 4),
+                        "result": exit_type,
+                        "pnl": round(pnl, 2)
+                    })
+                    del self.active_positions[ticker]
+                    await bot.send_message(chat_id=chat_id, text=f"🏁 {self.market_name} {exit_type}: {ticker} ({pos['type']})\nPnL: ${pnl:,.2f} | Time: {self.get_ist_now()}")
+            except: continue
 
         # 2. CHECK ENTRIES
-        if not self.is_market_open_for_entry() or len(self.active_positions) >= MAX_OPEN_PER_MARKET:
-            return
-
         potential = []
-        for ticker in tickers:
+        for ticker in clean_tickers:
             if ticker in self.active_positions: continue
-            status, mom = get_squeeze_status(data[ticker].dropna())
-
-            # ADD THIS LINE FOR TESTING:
-            print(f"DEBUG: {ticker} status is {status}")
-            
-            if status == "RELEASED":
-                potential.append({'ticker': ticker, 'mom': abs(mom), 'side': "BUY" if mom > 0 else "SELL", 'df': data[ticker]})
+            try:
+                df = data[ticker].dropna()
+                if len(df) < 35: continue
+                status, mom = get_squeeze_status(df)
+                if status == "RELEASED":
+                    potential.append({'ticker': ticker, 'mom': abs(mom), 'side': "BUY" if mom > 0 else "SELL", 'df': df})
+            except: continue
 
         potential.sort(key=lambda x: x['mom'], reverse=True)
 
         for entry in potential:
             if len(self.active_positions) >= MAX_OPEN_PER_MARKET: break
-            df, ticker, side = entry['df'], entry['ticker'], entry['side']
-            price, atr = float(df['Close'].iloc[-1]), self.calculate_atr(df)
+            
+            ticker, side, df = entry['ticker'], entry['side'], entry['df']
+            price = float(df['Close'].iloc[-1])
+            atr = self.calculate_atr(df)
             sl_dist = atr * SL_ATR_MULT
             units = (self.balance * RISK_PER_TRADE) / sl_dist if sl_dist > 0 else 0
 
             if units > 0:
                 self.active_positions[ticker] = {
-                    "type": side, "entry_price": price, "units": units,
+                    "type": side,
+                    "entry_price": price,
+                    "units": units,
                     "sl": price - sl_dist if side == "BUY" else price + sl_dist,
                     "tp": price + (atr * TP_ATR_MULT) if side == "BUY" else price - (atr * TP_ATR_MULT),
-                    "entry_time": datetime.now().strftime("%Y-%m-%d %H:%M")
+                    "entry_time": self.get_ist_now()
                 }
-                await bot.send_message(chat_id=chat_id, text=f"🚀 {self.market_name} ENTRY: {ticker}\nPrice: {price:.2f} | SL: {self.active_positions[ticker]['sl']:.2f}")
+                msg = f"🚀 {self.market_name} {side} ENTRY: {ticker}\nPrice: {price:.2f} | Time (IST): {self.get_ist_now()}"
+                await bot.send_message(chat_id=chat_id, text=msg)
         
         self.save_logs()
+
+    def get_report(self):
+        if not self.history: return f"📊 **{self.market_name}**: No trades today."
+        df = pd.DataFrame(self.history)
+        
+        wins = df[df['result'] == "TP"]
+        win_rate = (len(wins) / len(df)) * 100 if len(df) > 0 else 0
+        total_pnl = df['pnl'].sum()
+        
+        return (
+            f"📊 **{self.market_name} Performance**\n"
+            f"━━━━━━━━━━━━━━━━━━\n"
+            f"💰 Balance: ${self.balance:,.2f}\n"
+            f"📈 Win Rate: {win_rate:.1f}%\n"
+            f"💵 Total P&L: ${total_pnl:,.2f}\n"
+            f"⏱️ Active: {len(self.active_positions)} | History: {len(df)}"
+        )
