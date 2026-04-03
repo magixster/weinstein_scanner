@@ -1,15 +1,6 @@
 {
-    "balance": 99251.24999999999,
-    "active_positions": {
-        "XRP-USD": {
-            "type": "SELL",
-            "entry_price": 1.3112972974777222,
-            "units": 93301.62724240425,
-            "sl": 1.3166428634098597,
-            "tp": 1.3032789485795158,
-            "entry_time": "2026-04-03 10:03"
-        }
-    },
+    "balance": 98752.5,
+    "active_positions": {},
     "history": [
         {
             "ticker": "LINK-USD",
@@ -34,6 +25,12 @@
             "pnl": -498.75,
             "result": "SL",
             "time": "2026-04-03 11:03"
+        },
+        {
+            "ticker": "XRP-USD",
+            "pnl": -498.75,
+            "result": "SL",
+            "time": "2026-04-03 11:53"
         }
     ]
 }
