@@ -1,5 +1,5 @@
 {
-    "balance": 99238.74999999997,
+    "balance": 97257.66875000004,
     "active_positions": {
         "EURAUD=X": {
             "type": "SELL",
@@ -8,38 +8,6 @@
             "sl": 1.673023590019771,
             "tp": 1.666689681155341,
             "entry_time": "2026-04-02 18:01"
-        },
-        "AUDCAD=X": {
-            "type": "BUY",
-            "entry_price": 0.9617900252342224,
-            "units": 200144.476890949,
-            "sl": 0.9593293028218406,
-            "tp": 0.9654811088527951,
-            "entry_time": "2026-04-02 22:51"
-        },
-        "CHFJPY=X": {
-            "type": "SELL",
-            "entry_price": 199.30999755859375,
-            "units": 2570.0126474091544,
-            "sl": 199.50306810651506,
-            "tp": 199.0203917367118,
-            "entry_time": "2026-04-03 23:23"
-        },
-        "USDCHF=X": {
-            "type": "BUY",
-            "entry_price": 0.8007400035858154,
-            "units": 539759.5258606075,
-            "sl": 0.79982071689197,
-            "tp": 0.8021189336265836,
-            "entry_time": "2026-04-03 23:23"
-        },
-        "USDCAD=X": {
-            "type": "BUY",
-            "entry_price": 1.394610047340393,
-            "units": 474178.7412724889,
-            "sl": 1.3935636196817671,
-            "tp": 1.396179688828332,
-            "entry_time": "2026-04-04 00:36"
         }
     },
     "history": [
@@ -66,6 +34,46 @@
             "pnl": 738.75,
             "result": "TP",
             "time": "2026-04-03 11:53"
+        },
+        {
+            "ticker": "AUDCAD=X",
+            "side": "BUY",
+            "entry_time": "2026-04-02 22:51",
+            "exit_time": "2026-04-04 02:23",
+            "entry_price": 0.9618,
+            "exit_price": 0.9593,
+            "result": "SL",
+            "pnl": -492.5
+        },
+        {
+            "ticker": "CHFJPY=X",
+            "side": "SELL",
+            "entry_time": "2026-04-03 23:23",
+            "exit_time": "2026-04-04 02:23",
+            "entry_price": 199.31,
+            "exit_price": 199.5031,
+            "result": "SL",
+            "pnl": -496.19
+        },
+        {
+            "ticker": "USDCHF=X",
+            "side": "BUY",
+            "entry_time": "2026-04-03 23:23",
+            "exit_time": "2026-04-04 02:23",
+            "entry_price": 0.8007,
+            "exit_price": 0.7998,
+            "result": "SL",
+            "pnl": -496.19
+        },
+        {
+            "ticker": "USDCAD=X",
+            "side": "BUY",
+            "entry_time": "2026-04-04 00:36",
+            "exit_time": "2026-04-04 02:23",
+            "entry_price": 1.3946,
+            "exit_price": 1.3936,
+            "result": "SL",
+            "pnl": -496.19
         }
     ]
 }
