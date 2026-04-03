@@ -136,18 +136,51 @@ class MultiMarketTrader:
         self.save_logs()
 
     def get_report(self):
-        if not self.history: return f"📊 **{self.market_name}**: No trades today."
+        if not self.history: 
+            return f"📊 **{self.market_name}**: No trades in history."
+        
         df = pd.DataFrame(self.history)
         
+        # 1. Overall Stats
+        total_trades = len(df)
         wins = df[df['result'] == "TP"]
-        win_rate = (len(wins) / len(df)) * 100 if len(df) > 0 else 0
+        overall_win_rate = (len(wins) / total_trades) * 100
         total_pnl = df['pnl'].sum()
         
-        return (
-            f"📊 **{self.market_name} Performance**\n"
+        # 2. Pair-wise Performance
+        # Grouping by ticker to find your "Star" performers
+        pair_stats = []
+        for ticker, group in df.groupby('ticker'):
+            p_wins = len(group[group['result'] == "TP"])
+            p_total = len(group)
+            p_wr = (p_wins / p_total) * 100
+            p_pnl = group['pnl'].sum()
+            pair_stats.append({
+                'ticker': ticker, 
+                'wr': p_wr, 
+                'pnl': p_pnl, 
+                'trades': p_total
+            })
+        
+        # Sort by PnL to show best on top
+        pair_stats.sort(key=lambda x: x['pnl'], reverse=True)
+        
+        # 3. Build the Message
+        report = (
+            f"🏆 **{self.market_name} OVERALL SUMMARY**\n"
             f"━━━━━━━━━━━━━━━━━━\n"
             f"💰 Balance: ${self.balance:,.2f}\n"
-            f"📈 Win Rate: {win_rate:.1f}%\n"
+            f"📈 Win Rate: {overall_win_rate:.1f}%\n"
             f"💵 Total P&L: ${total_pnl:,.2f}\n"
-            f"⏱️ Active: {len(self.active_positions)} | History: {len(df)}"
+            f"🔄 Total Trades: {total_trades}\n\n"
+            f"🔍 **PAIR-WISE BREAKDOWN**\n"
         )
+        
+        for p in pair_stats:
+            icon = "✅" if p['pnl'] > 0 else "❌"
+            report += (
+                f"{icon} `{p['ticker']}`: ${p['pnl']:,.2f} | "
+                f"WR: {p['wr']:.0f}% ({p['trades']}T)\n"
+            )
+            
+        return report
