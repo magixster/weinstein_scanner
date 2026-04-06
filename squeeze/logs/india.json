@@ -1,5 +1,5 @@
 {
-    "balance": 100000,
+    "balance": 100750.0,
     "active_positions": {
         "BHARTIARTL.NS": {
             "type": "SELL",
@@ -15,14 +15,6 @@
             "units": 26.080462666243392,
             "sl": 1217.0714634486608,
             "tp": 1169.142865862165,
-            "entry_time": "2026-04-03 17:39"
-        },
-        "SIEMENS.NS": {
-            "type": "SELL",
-            "entry_price": 3043.89990234375,
-            "units": 9.903791053220788,
-            "sl": 3094.3856201171875,
-            "tp": 2968.1713256835938,
             "entry_time": "2026-04-03 17:39"
         },
         "HINDALCO.NS": {
@@ -42,5 +34,16 @@
             "entry_time": "2026-04-03 17:39"
         }
     },
-    "history": []
+    "history": [
+        {
+            "ticker": "SIEMENS.NS",
+            "side": "SELL",
+            "entry_time": "2026-04-03 17:39",
+            "exit_time": "2026-04-06 11:37",
+            "entry_price": 3043.8999,
+            "exit_price": 2968.1713,
+            "result": "TP",
+            "pnl": 750.0
+        }
+    ]
 }
