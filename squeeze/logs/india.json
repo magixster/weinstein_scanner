@@ -1,5 +1,5 @@
 {
-    "balance": 100750.0,
+    "balance": 99750.0,
     "active_positions": {
         "BHARTIARTL.NS": {
             "type": "SELL",
@@ -7,22 +7,6 @@
             "units": 30.541018722777835,
             "sl": 1806.0713762555804,
             "tp": 1765.142813546317,
-            "entry_time": "2026-04-03 17:39"
-        },
-        "AXISBANK.NS": {
-            "type": "SELL",
-            "entry_price": 1197.9000244140625,
-            "units": 26.080462666243392,
-            "sl": 1217.0714634486608,
-            "tp": 1169.142865862165,
-            "entry_time": "2026-04-03 17:39"
-        },
-        "HINDALCO.NS": {
-            "type": "SELL",
-            "entry_price": 919.9000244140625,
-            "units": 41.29793510324484,
-            "sl": 932.0071672712054,
-            "tp": 901.7393101283482,
             "entry_time": "2026-04-03 17:39"
         },
         "DLF.NS": {
@@ -44,6 +28,26 @@
             "exit_price": 2968.1713,
             "result": "TP",
             "pnl": 750.0
+        },
+        {
+            "ticker": "AXISBANK.NS",
+            "side": "SELL",
+            "entry_time": "2026-04-03 17:39",
+            "exit_time": "2026-04-06 13:31",
+            "entry_price": 1197.9,
+            "exit_price": 1217.0715,
+            "result": "SL",
+            "pnl": -500.0
+        },
+        {
+            "ticker": "HINDALCO.NS",
+            "side": "SELL",
+            "entry_time": "2026-04-03 17:39",
+            "exit_time": "2026-04-06 13:31",
+            "entry_price": 919.9,
+            "exit_price": 932.0072,
+            "result": "SL",
+            "pnl": -500.0
         }
     ]
 }
